@@ -51,8 +51,8 @@ Outputs go to `./outputs/` (set `EN4554_OUT` to change this). Runs use **fp16 ev
 
 | Step | Status |
 |---|---|
-| Phase 0: scaffold, utils, adapter targeting tests | ✅ |
-| Part 1: dataset headroom check | ⏳ |
+| Phase 0: scaffold, utils, adapter targeting tests, T4 smoke test | ✅ |
+| Part 1: dataset headroom check | 🔧 script ready (`01_headroom.ipynb`) |
 | Part 1: LoRA vs PiSSA training + eval | ⏳ |
 | Part 1: vision-specific analysis (placement × spectrum) | ⏳ |
 | Part 1: report | ⏳ |
