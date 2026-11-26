@@ -221,3 +221,26 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- EN4554 project ----
+# Training outputs / checkpoints live on Google Drive (Colab) or outputs/ (local)
+outputs/
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+wandb/
+runs/
+# HF caches / downloaded datasets
+hf_cache/
+.cache/
+# LaTeX build artefacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg

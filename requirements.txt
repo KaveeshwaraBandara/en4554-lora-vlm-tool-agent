@@ -1,0 +1,19 @@
+# Python >= 3.10. Versions below were checked to install together.
+#
+# torch is NOT listed: Colab already ships a CUDA build (reinstalling it is slow and can
+# break CUDA). Locally, install torch >= 2.6 for your CUDA version first:
+#   https://pytorch.org/get-started/locally/
+transformers==5.24.1
+peft==0.22.0
+accelerate==1.16.0
+datasets==5.2.0
+num2words==0.5.14   # required by the SmolVLM processor
+
+# Analysis / plotting (already on Colab; unpinned to avoid reinstalling)
+numpy
+pandas
+matplotlib
+scipy
+tqdm
+pillow
+pytest
