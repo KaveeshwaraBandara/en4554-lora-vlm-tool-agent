@@ -48,10 +48,10 @@ def test_report_pipeline(tmp_path):
     with JsonlLogger(zs / "eval_log.jsonl", append=False) as L:
         L.log({"step": 0, "accuracy": 49.62, "eval_loss": 8.06})
     sp = pd.DataFrame([{"component": c, "layer": l, "type": "q_proj", "top_r_energy": e, "minor_r_energy": 0.001,
-                        "eff_rank_frac": 0.8, "update_scale": u}
+                        "eff_rank_frac": 0.8, "update_scale": u, "sigma1": 3.0 * u}
                        for c, n, e, u in (("lm", 30, 0.3, 12.0), ("vision", 12, 0.15, 6.0)) for l in range(n)]
                       + [{"component": "connector", "layer": -1, "type": "proj", "top_r_energy": 0.2,
-                          "minor_r_energy": 0.0, "eff_rank_frac": 0.7, "update_scale": 9.0}])
+                          "minor_r_energy": 0.0, "eff_rank_frac": 0.7, "update_scale": 9.0, "sigma1": 7.0}])
     sp.to_csv(tmp_path / "spectral.csv", index=False)
 
     out = tmp_path / "out"
@@ -66,3 +66,5 @@ def test_report_pipeline(tmp_path):
     assert row.n_questions == 500 and row.seeds == 2 and row.ci_low < row["diff"] < row.ci_high
     nums = json.loads((out / "tables" / "numbers.json").read_text())
     assert nums["zeroshot"]["acc"] == 49.62 and "vision" in nums["spectral"]
+    macros = (out / "tables" / "macros.tex").read_text()
+    assert "r@spec-vision-s1max" in macros and "r@pl-low-300-diff" in macros

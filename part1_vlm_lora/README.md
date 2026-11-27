@@ -1,5 +1,7 @@
 # Part 1 – Does PiSSA's claim transfer to a vision-language model?
 
+**Report:** [`report/report.pdf`](report/report.pdf) · figures and tables in `results/` (rebuild with `python -m part1_vlm_lora.src.report_figures`).
+
 **Paper:** PiSSA: Principal Singular Values and Singular Vectors Adaptation of Large Language Models (Meng, Wang & Zhang, NeurIPS 2024).
 **Model:** `HuggingFaceTB/SmolVLM-256M-Instruct` (SigLIP-base/16-512 vision encoder + pixel-shuffle connector + SmolLM2-135M).
 **PEFT:** `LoraConfig(init_lora_weights="pissa")` vs the default LoRA init, at equal rank and equal trainable parameters.
@@ -35,6 +37,8 @@ Deviations: batch 8 instead of 128, and fp16 autocast instead of fp32 (T4).
 
 | group | runs |
 |---|---|
+| `reproduce` | zero-shot; LoRA vs PiSSA, lr 2e-5, seed 42 (~45 min on a T4) |
+| `bonus` | LoRA vs PiSSA with vision-tower adapters; minor-SVD init (all lr 2e-5, seed 42) |
 | `main` | zero-shot; {LoRA, PiSSA} × lr {2e-4, 2e-5} × seed {42, 43}; LM adapters, r=16, 300 steps |
 | `reference` | full-rank update of the same LM matrices (lr 2e-5); minor and medium SVD init (PiSSA App. A ablation) |
 | `vision LR` | {LoRA, PiSSA} × placement {vision, connector, all} |

@@ -231,7 +231,7 @@ checkpoints/
 *.pt
 *.ckpt
 wandb/
-runs/
+/runs/
 # HF caches / downloaded datasets
 hf_cache/
 .cache/

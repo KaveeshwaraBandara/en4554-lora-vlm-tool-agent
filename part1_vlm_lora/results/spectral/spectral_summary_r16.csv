@@ -1,0 +1,6 @@
+,top_r_energy,top_r_energy,minor_r_energy,minor_r_energy,eff_rank_frac,eff_rank_frac,sqrt_sigma_top,sqrt_sigma_top,update_scale,update_scale
+,mean,median,mean,median,mean,median,mean,median,mean,median
+component,,,,,,,,,,
+connector,0.0693,0.0693,0.0115,0.0115,0.9059,0.9059,2.0161,2.0161,7.0144,7.0144
+lm,0.1852,0.1653,0.0036,0.0022,0.6247,0.6878,3.0136,3.1641,10.4678,10.9781
+vision,0.131,0.1148,0.0009,0.0,0.5613,0.5439,1.2443,1.2234,4.3286,4.2417

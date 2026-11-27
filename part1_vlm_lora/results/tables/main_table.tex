@@ -1,0 +1,11 @@
+\begin{tabular}{llcccccc}
+\toprule
+Method & lr & acc@50 & acc@150 & acc@300 & held-out loss & steps to loss$\le$1 & train loss \\
+\midrule
+Zero-shot & -- & \multicolumn{3}{c}{49.6} & 8.06 & -- & -- \\
+LoRA & 2e-5 & 48.2\,$\pm$0.1 & 51.1\,$\pm$0.1 & 51.3\,$\pm$0.1 & 0.948 & 200/150 & 1.10 \\
+\textbf{PiSSA} & \textbf{2e-5} & \textbf{51.9\,$\pm$0.5} & \textbf{53.2\,$\pm$0.3} & \textbf{54.6\,$\pm$0.4} & \textbf{0.717} & \textbf{25/25} & \textbf{0.75} \\
+LoRA & 2e-4 & 51.8\,$\pm$0.1 & 54.1\,$\pm$0.5 & 55.7\,$\pm$0.1 & 0.687 & 25/25 & 0.72 \\
+PiSSA & 2e-4 & 52.2\,$\pm$1.1 & 51.9\,$\pm$0.7 & 56.1\,$\pm$0.5 & 0.688 & 25/10 & 0.51 \\
+\bottomrule
+\end{tabular}

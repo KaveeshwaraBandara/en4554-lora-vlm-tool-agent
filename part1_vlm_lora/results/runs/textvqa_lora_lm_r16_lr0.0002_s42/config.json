@@ -1,0 +1,53 @@
+{
+  "method": "lora",
+  "placement": "lm",
+  "rank": 16,
+  "lr": 0.0002,
+  "seed": 42,
+  "dataset": "textvqa",
+  "longest_edge": 1024,
+  "n_train": 2000,
+  "n_eval": 500,
+  "data_seed": 42,
+  "max_steps": 300,
+  "micro_batch": 8,
+  "grad_accum": 1,
+  "warmup_ratio": 0.03,
+  "max_grad_norm": 1.0,
+  "eval_loss_every": 50,
+  "eval_loss_n": 256,
+  "eval_loss_extra": [
+    5,
+    10,
+    25
+  ],
+  "init_loss_scale": 4096.0,
+  "gen_eval_steps": [
+    50,
+    150,
+    300
+  ],
+  "gen_batch": 8,
+  "num_workers": 2,
+  "model_id": "HuggingFaceTB/SmolVLM-256M-Instruct",
+  "run_name": "textvqa_lora_lm_r16_lr0.0002_s42",
+  "save_adapter": false,
+  "force": false,
+  "quick": false,
+  "metric": "vqa_acc",
+  "gpu": "Tesla T4 | 14.6 GiB | compute capability 7.5 | torch 2.14.1+cu130 | CUDA 13.0 | bf16 supported: True",
+  "n_matrices": 210,
+  "trainable_params": 4884480,
+  "trainable_by_component": {
+    "lm": 4884480
+  },
+  "init_seconds": 0.92,
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.24.1",
+    "peft": "0.22.0",
+    "datasets": "5.2.0"
+  },
+  "n_train_images": 1321,
+  "n_eval_images": 324
+}

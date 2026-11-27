@@ -1,0 +1,196 @@
+{
+  "zeroshot": {
+    "acc": 49.62,
+    "loss": 8.056623986609896
+  },
+  "main": [
+    {
+      "method": "lora",
+      "lr": 2e-05,
+      "placement": "lm",
+      "seeds": 2,
+      "acc50": 48.230000000000004,
+      "acc50_half_range": 0.129999999999999,
+      "acc150": 51.06,
+      "acc150_half_range": 0.05999999999999872,
+      "acc300": 51.26,
+      "acc300_half_range": 0.10000000000000142,
+      "eval_loss": 0.9478247235031946,
+      "steps_to_loss_le_1": [
+        200,
+        150
+      ],
+      "train_loss_last50": 1.0984317950159308,
+      "grad_norm_med_10_100": 6.600340366363525
+    },
+    {
+      "method": "pissa",
+      "lr": 2e-05,
+      "placement": "lm",
+      "seeds": 2,
+      "acc50": 51.92999999999999,
+      "acc50_half_range": 0.45000000000000284,
+      "acc150": 53.24000000000001,
+      "acc150_half_range": 0.2800000000000047,
+      "acc300": 54.599999999999994,
+      "acc300_half_range": 0.4400000000000013,
+      "eval_loss": 0.7173488412416515,
+      "steps_to_loss_le_1": [
+        25,
+        25
+      ],
+      "train_loss_last50": 0.7501845902204509,
+      "grad_norm_med_10_100": 18.14612865447998
+    },
+    {
+      "method": "lora",
+      "lr": 0.0002,
+      "placement": "lm",
+      "seeds": 2,
+      "acc50": 51.82000000000001,
+      "acc50_half_range": 0.10000000000000142,
+      "acc150": 54.1,
+      "acc150_half_range": 0.5399999999999991,
+      "acc300": 55.730000000000004,
+      "acc300_half_range": 0.129999999999999,
+      "eval_loss": 0.687371296093876,
+      "steps_to_loss_le_1": [
+        25,
+        25
+      ],
+      "train_loss_last50": 0.7193301853537556,
+      "grad_norm_med_10_100": 1.8681887388229366
+    },
+    {
+      "method": "pissa",
+      "lr": 0.0002,
+      "placement": "lm",
+      "seeds": 2,
+      "acc50": 52.209999999999994,
+      "acc50_half_range": 1.0500000000000007,
+      "acc150": 51.93,
+      "acc150_half_range": 0.7299999999999969,
+      "acc300": 56.09,
+      "acc300_half_range": 0.5300000000000011,
+      "eval_loss": 0.6877537654194615,
+      "steps_to_loss_le_1": [
+        25,
+        10
+      ],
+      "train_loss_last50": 0.5104223413020368,
+      "grad_norm_med_10_100": 9.38431978225708
+    }
+  ],
+  "paired": [
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-5",
+      "step": 50,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 3.7,
+      "ci_low": 0.43,
+      "ci_high": 6.88,
+      "p": 0.0248
+    },
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-5",
+      "step": 150,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 2.18,
+      "ci_low": -0.65,
+      "ci_high": 5.1,
+      "p": 0.1366
+    },
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-5",
+      "step": 300,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 3.34,
+      "ci_low": 0.49,
+      "ci_high": 6.240249999999997,
+      "p": 0.0198
+    },
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-4",
+      "step": 50,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 0.39,
+      "ci_low": -2.12025,
+      "ci_high": 3.0,
+      "p": 0.763
+    },
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-4",
+      "step": 150,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": -2.17,
+      "ci_low": -4.67,
+      "ci_high": 0.33,
+      "p": 0.0912
+    },
+    {
+      "comparison": "PiSSA - LoRA, lr 2e-4",
+      "step": 300,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 0.36,
+      "ci_low": -2.07,
+      "ci_high": 2.78,
+      "p": 0.7744
+    },
+    {
+      "comparison": "PiSSA 2e-5 - LoRA 2e-4",
+      "step": 50,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": 0.11,
+      "ci_low": -1.5,
+      "ci_high": 1.76,
+      "p": 0.909
+    },
+    {
+      "comparison": "PiSSA 2e-5 - LoRA 2e-4",
+      "step": 150,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": -0.86,
+      "ci_low": -2.55,
+      "ci_high": 0.82,
+      "p": 0.3198
+    },
+    {
+      "comparison": "PiSSA 2e-5 - LoRA 2e-4",
+      "step": 300,
+      "n_questions": 500,
+      "seeds": 2,
+      "diff": -1.13,
+      "ci_low": -2.87,
+      "ci_high": 0.56,
+      "p": 0.1936
+    }
+  ],
+  "spectral": {
+    "connector": {
+      "top_r_energy": 0.0693,
+      "minor_r_energy": 0.0115,
+      "eff_rank_frac": 0.9059,
+      "update_scale": 7.0144
+    },
+    "lm": {
+      "top_r_energy": 0.1852,
+      "minor_r_energy": 0.0036,
+      "eff_rank_frac": 0.6247,
+      "update_scale": 10.4678
+    },
+    "vision": {
+      "top_r_energy": 0.131,
+      "minor_r_energy": 0.0009,
+      "eff_rank_frac": 0.5613,
+      "update_scale": 4.3286
+    }
+  }
+}

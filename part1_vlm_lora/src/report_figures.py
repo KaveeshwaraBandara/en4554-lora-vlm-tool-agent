@@ -265,7 +265,7 @@ def write_latex(df: pd.DataFrame, paired: pd.DataFrame, zeroshot, out: Path):
             if len(r):
                 r = r.iloc[0]
                 star = "$^{*}$" if r.ci_low > 0 or r.ci_high < 0 else ""
-                cells.append(f"{r['diff']:+.1f} [{r.ci_low:+.1f}, {r.ci_high:+.1f}]{star}")
+                cells.append(f"${r['diff']:+.1f}$ [${r.ci_low:+.1f}$, ${r.ci_high:+.1f}$]{star}")
             else:
                 cells.append("--")
         pl.append(label.replace(" - ", " $-$ ") + " & " + " & ".join(cells) + r" \\")
@@ -293,7 +293,7 @@ def write_macros(df: pd.DataFrame, paired: pd.DataFrame, zeroshot, spectral: dic
              "minor - LoRA, lr 2e-5": "ml-low"}
     for _, r in paired.iterrows():
         k = f"{short.get(r.comparison, r.comparison)}-{int(r.step)}"
-        m[f"{k}-diff"], m[f"{k}-lo"], m[f"{k}-hi"] = f"{r['diff']:+.1f}", f"{r.ci_low:+.1f}", f"{r.ci_high:+.1f}"
+        m[f"{k}-diff"], m[f"{k}-lo"], m[f"{k}-hi"] = f"${r['diff']:+.1f}$", f"${r.ci_low:+.1f}$", f"${r.ci_high:+.1f}$"
         m[f"{k}-p"] = f"{r.p:.3f}" if r.p >= 0.001 else "$<$0.001"
     if spectral:
         for comp, d in spectral.items():
@@ -339,7 +339,14 @@ def main(argv=None):
         numbers["spectral"] = sp.groupby("component")[["top_r_energy", "minor_r_energy", "eff_rank_frac",
                                                        "update_scale"]].mean().round(4).to_dict(orient="index")
     (tabs / "numbers.json").write_text(json.dumps(numbers, indent=2, default=str))
-    write_macros(df, paired, zeroshot, numbers.get("spectral"), tabs)
+    m = write_macros(df, paired, zeroshot, numbers.get("spectral"), tabs)
+    if spec.exists() and "sigma1" in pd.read_csv(spec, nrows=1).columns:  # per-type mean sigma_1 range
+        t = pd.read_csv(spec).groupby(["component", "type"]).sigma1.mean()
+        extra = {f"spec-{c}-s1min": f"{t[c].min():.1f}" for c in ("lm", "vision")}
+        extra |= {f"spec-{c}-s1max": f"{t[c].max():.1f}" for c in ("lm", "vision")}
+        with open(tabs / "macros.tex", "a") as f:
+            f.write("\\makeatletter\n" + "".join(f"\\@namedef{{r@{k}}}{{{v}}}\n" for k, v in extra.items())
+                    + "\\makeatother\n")
     pd.set_option("display.width", 200)
     print(df.drop(columns=[c for c in df.columns if c.endswith("half_range")]).to_string(index=False))
     print(paired.round(3).to_string(index=False))

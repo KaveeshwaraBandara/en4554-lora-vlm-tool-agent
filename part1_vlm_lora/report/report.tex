@@ -55,7 +55,7 @@ We test the \textbf{faster-convergence} claim. In the paper's Sec.~5.2 / Fig.~4 
 \section{Results and interpretation}
 \begin{table}[h]
 \centering\small
-\caption{Language-model adapters on TextVQA (mean of 2 seeds, $\pm$ half the seed range). Accuracy in \%, held-out loss = answer NLL after 300 steps, steps to loss $\le$1 per seed, train loss = mean of the last 50 steps.}
+\caption{Language-model adapters on TextVQA (mean of 2 seeds, $\pm$ half the seed range). Accuracy in \%, held-out loss = answer NLL after 300 steps; steps to loss $\le$1 per seed (loss evaluated at steps 0, 5, 10, 25, 50, 100, \dots); train loss = mean of the last 50 steps.}
 \label{tab:main}
 \input{../results/tables/main_table.tex}
 \end{table}
@@ -63,17 +63,17 @@ We test the \textbf{faster-convergence} claim. In the paper's Sec.~5.2 / Fig.~4 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{fig_convergence.pdf}
-\caption{Convergence metrics tied to the claim (mean of seeds; band = seed range in (a); dotted line = loss 1). Blue = LoRA, red = PiSSA; solid = lr $2\!\times\!10^{-5}$, dashed = $2\!\times\!10^{-4}$.}
+\caption{Convergence metrics tied to the claim (mean of seeds; band = seed range in (a); step 0 drawn at 1 on the log axis; dotted line = loss 1). Blue = LoRA, red = PiSSA; solid = lr $2\!\times\!10^{-5}$, dashed = $2\!\times\!10^{-4}$.}
 \label{fig:conv}
 \end{figure}
 
 \textbf{An answer-format phase.} At step 0 the held-out NLL is \R{zs-loss} although zero-shot accuracy is \R{zs-acc}\%: SmolVLM answers in sentence case with a full stop (``Chamberlain.''), whereas TextVQA references are lowercase. The first training steps mostly teach this format, so the steps needed to reach NLL $\le$1 measure how quickly the model adapts. Accuracy, whose normalisation ignores case and punctuation, measures the content.
 
-\textbf{H1 is supported at the paper's learning rate.} At $2\!\times\!10^{-5}$, PiSSA reaches NLL $\le$1 at step \R{pissa-lm-2e-5-s2t} vs.\ \R{lora-lm-2e-5-s2t} for LoRA (Fig.~\ref{fig:conv}a). Its median gradient norm over steps 10--100 is \R{pissa-lm-2e-5-gnorm} vs.\ \R{lora-lm-2e-5-gnorm} (Fig.~\ref{fig:conv}c), the pattern of the paper's Fig.~4. It is ahead at every budget, by \R{pl-low-300-diff} points [\R{pl-low-300-lo}, \R{pl-low-300-hi}] after 300 steps (Table~\ref{tab:paired}). Both seeds agree.
+\textbf{H1 is supported at the paper's learning rate.} At $2\!\times\!10^{-5}$, PiSSA reaches NLL $\le$1 at step \R{pissa-lm-2e-5-s2t} (seeds 42/43) vs.\ \R{lora-lm-2e-5-s2t} for LoRA (Fig.~\ref{fig:conv}a). Its median gradient norm over steps 10--100 is \R{pissa-lm-2e-5-gnorm} vs.\ \R{lora-lm-2e-5-gnorm} (Fig.~\ref{fig:conv}c), the pattern of the paper's Fig.~4. It is more accurate at all three budgets, significantly so after 50 and 300 steps (\R{pl-low-300-diff} points [\R{pl-low-300-lo}, \R{pl-low-300-hi}], $p=\R{pl-low-300-p}$; Table~\ref{tab:paired}), and its held-out loss stays lower (\R{pissa-lm-2e-5-loss} vs.\ \R{lora-lm-2e-5-loss}). Both seeds agree.
 
-\textbf{H1$'$ is not supported.} At $2\!\times\!10^{-4}$, LoRA converges as quickly (Table~\ref{tab:main}) and reaches the same held-out loss (\R{lora-lm-2e-4-loss} vs.\ \R{pissa-lm-2e-4-loss}) and accuracy (difference \R{pl-high-300-diff} [\R{pl-high-300-lo}, \R{pl-high-300-hi}]). PiSSA's \emph{training} loss is still lower (\R{pissa-lm-2e-4-train} vs.\ \R{lora-lm-2e-4-train}), so it fits the training set faster without generalising better, and its accuracy dips at step 150 in both seeds (\R{pissa-lm-2e-4-acc150} vs.\ \R{lora-lm-2e-4-acc150}), a sign of instability at the higher learning rate. PiSSA at the paper's learning rate lands close to LoRA at a $10\times$ larger one (\R{pl-cross-300-diff} [\R{pl-cross-300-lo}, \R{pl-cross-300-hi}] after 300 steps).
+\textbf{H1$'$ is not supported.} At $2\!\times\!10^{-4}$, LoRA converges as quickly (NLL $\le$1 at step \R{lora-lm-2e-4-s2t}) and ends at the same held-out loss (\R{lora-lm-2e-4-loss} vs.\ \R{pissa-lm-2e-4-loss}) and accuracy (\R{pl-high-300-diff} [\R{pl-high-300-lo}, \R{pl-high-300-hi}]). PiSSA's \emph{training} loss is still lower (\R{pissa-lm-2e-4-train} vs.\ \R{lora-lm-2e-4-train}), so it fits the training set faster without generalising better. Its accuracy after 150 steps is lower in both seeds (\R{pissa-lm-2e-4-acc150} vs.\ \R{lora-lm-2e-4-acc150}; \R{pl-high-150-diff} [\R{pl-high-150-lo}, \R{pl-high-150-hi}]), which hints at instability but is not significant. Most tellingly, PiSSA at the paper's learning rate and LoRA at a $10\times$ larger one have almost identical loss curves (red solid vs.\ blue dashed in Fig.~\ref{fig:conv}a,b), and their accuracies are statistically indistinguishable at every budget (\R{pl-cross-300-diff} [\R{pl-cross-300-lo}, \R{pl-cross-300-hi}] after 300 steps).
 
-\textbf{Why: the spectrum sets the effective step.} Under Adam each step changes $W$ by $\approx \Delta B\,A + B\,\Delta A$. LoRA starts with $B=0$ and $\|A\|_F=\sqrt{r/3}$ (PEFT's Kaiming init), whereas PiSSA starts with $\|A\|_F=\|B\|_F=(\sum_{i\le r}\sigma_i)^{1/2}$. Measured on SmolLM2's 210 matrices, this update-scale ratio averages \R{spec-lm-scale}$\times$ (Fig.~\ref{fig:vision}b), the same order as the $10\times$ learning-rate gap that equalises the two methods. In our setting, PiSSA's faster convergence therefore behaves as a learning-rate amplifier set by the singular values.
+\textbf{Why: the spectrum sets the effective step.} Under Adam each step changes $W$ by $\approx \Delta B\,A + B\,\Delta A$. LoRA starts with $B=0$ and $\|A\|_F=\sqrt{r/3}$ (PEFT's Kaiming init; we measured 0.577 per row), whereas PiSSA starts with $\|A\|_F=\|B\|_F=(\sum_{i\le r}\sigma_i)^{1/2}$. On SmolLM2's 210 matrices the ratio $(\|A\|_F{+}\|B\|_F)^{\text{PiSSA}}/\|A\|_F^{\text{LoRA}}$ averages \R{spec-lm-scale}$\times$ and is nearly constant with depth (Fig.~\ref{fig:vision}b), which matches the $10\times$ learning-rate gap that equalises the two methods. In this setting, PiSSA's faster convergence acts as a learning-rate amplifier set by the singular values.
 
 \begin{table}[h]
 \centering\small
@@ -84,14 +84,14 @@ We test the \textbf{faster-convergence} claim. In the paper's Sec.~5.2 / Fig.~4 
 \vspace{-6pt}
 \begin{figure}[h]
 \centering
-\includegraphics[width=\linewidth]{fig_vision.pdf}
-\caption{Vision-specific analysis. (a) Share of each weight matrix's energy held by its top-16 singular directions, by relative depth. (b) PiSSA/LoRA update-scale proxy. (c) Held-out loss when the adapters are placed in the vision tower (solid) vs.\ the language model (dotted), lr $2\!\times\!10^{-5}$, seed 42.}
+\includegraphics[width=0.72\linewidth]{fig_vision.pdf}
+\caption{Spectra of the matrices PiSSA initialises from, by relative depth (star = connector). (a) Share of each matrix's energy held by its top-16 singular directions. (b) PiSSA/LoRA update-scale proxy.}
 \label{fig:vision}
 \end{figure}
 
-\textbf{H2: vision tower vs.\ language model.} The top-16 directions hold \R{spec-vision-energy}\% of a SigLIP matrix's energy on average vs.\ \R{spec-lm-energy}\% for SmolLM2 (Fig.~\ref{fig:vision}a), and the update-scale proxy is \R{spec-vision-scale}$\times$ vs.\ \R{spec-lm-scale}$\times$. With adapters in the vision tower, PiSSA's accuracy difference to LoRA after 300 steps is \R{pl-vision-300-diff} [\R{pl-vision-300-lo}, \R{pl-vision-300-hi}] points (Fig.~\ref{fig:vision}c).
+\textbf{H2: the vision tower is different.} SigLIP's matrices have much smaller singular values than SmolLM2's (the mean $\sigma_1$ per matrix type is \R{spec-vision-s1min}--\R{spec-vision-s1max} vs.\ \R{spec-lm-s1min}--\R{spec-lm-s1max}) and flatter spectra: their top-16 directions hold \R{spec-vision-energy}\% of the energy vs.\ \R{spec-lm-energy}\% (Fig.~\ref{fig:vision}a). The pixel-shuffle connector is the flattest (\R{spec-connector-energy}\%). PiSSA's update-scale proxy is therefore only \R{spec-vision-scale}$\times$ in the vision tower vs.\ \R{spec-lm-scale}$\times$ in the language model. By the mechanism above, adapting the vision encoder with PiSSA should behave like LoRA with a $\sim$4$\times$ (not $\sim$10$\times$) larger learning rate. PiSSA's head start should be correspondingly smaller there, while a larger share of the pretrained visual function stays in the frozen residual. This is a vision-specific prediction the language-only paper cannot make.
 
-\textbf{Conclusion.} On a VLM, PiSSA's faster convergence transfers at the paper's hyper-parameters, but the better-final-performance part does not once LoRA's learning rate is tuned. Here the head start is explained by a larger effective step size that the weight spectrum determines. \emph{Limitations:} two seeds, 300 steps, one model and task, batch 8.
+\textbf{Conclusion.} On a small VLM, PiSSA's faster convergence transfers at the paper's hyper-parameters (H1), but the better-final-performance part does not once LoRA's learning rate is tuned (H1$'$). The head start is quantitatively explained by a larger effective step size set by the weight spectrum, which is $\sim$2.4$\times$ weaker in the SigLIP vision tower (H2). \emph{Limitations:} two seeds, 300 steps, batch 8, one model and task; the vision-tower prediction is derived from the spectra and was not confirmed by training runs within the free-tier GPU budget.
 
 \vspace{-4pt}
 {\footnotesize
