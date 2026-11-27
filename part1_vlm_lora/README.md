@@ -35,7 +35,7 @@ Deviations: batch 8 instead of 128, and fp16 autocast instead of fp32 (T4).
 
 | group | runs |
 |---|---|
-| `main` | zero-shot; {LoRA, PiSSA} × lr {2e-4, 2e-5} × seed {42, 43}; LM adapters, r=16, 500 steps |
+| `main` | zero-shot; {LoRA, PiSSA} × lr {2e-4, 2e-5} × seed {42, 43}; LM adapters, r=16, 300 steps |
 | `reference` | full-rank update of the same LM matrices (lr 2e-5); minor and medium SVD init (PiSSA App. A ablation) |
 | `vision LR` | {LoRA, PiSSA} × placement {vision, connector, all} |
 

@@ -127,14 +127,14 @@ def parse_args(argv=None):
     ap.add_argument("--n-train", type=int, default=2000)
     ap.add_argument("--n-eval", type=int, default=500)
     ap.add_argument("--data-seed", type=int, default=42, help="fixed across runs: same train/eval split")
-    ap.add_argument("--max-steps", type=int, default=500)
+    ap.add_argument("--max-steps", type=int, default=300)
     ap.add_argument("--micro-batch", type=int, default=8)
     ap.add_argument("--grad-accum", type=int, default=1)
     ap.add_argument("--warmup-ratio", type=float, default=0.03)
     ap.add_argument("--max-grad-norm", type=float, default=1.0)
     ap.add_argument("--eval-loss-every", type=int, default=50)
     ap.add_argument("--eval-loss-n", type=int, default=256)
-    ap.add_argument("--gen-eval-steps", type=int, nargs="*", default=[50, 150, 500])
+    ap.add_argument("--gen-eval-steps", type=int, nargs="*", default=[50, 150, 300])
     ap.add_argument("--gen-batch", type=int, default=8)
     ap.add_argument("--num-workers", type=int, default=2)
     ap.add_argument("--model-id", default=DEFAULT_MODEL_ID)
@@ -230,15 +230,20 @@ def main(argv=None):
 
     gen_steps = set(a.gen_eval_steps)
     train_log = JsonlLogger(out / "train_log.jsonl", append=False)
+    # step-0 held-out loss: identical for every method (adapter init leaves outputs unchanged)
+    el0 = eval_loss(model, collator, eval_loss_ds, a.micro_batch, device)
+    eval_log.log({"step": 0, "eval_loss": el0})
+    print(f"  eval @ 0: eval_loss={el0:.4f}")
     model.train()
     t_start = time.time()
     first_batch_checked = False
     for step in range(1, a.max_steps + 1):
         t0 = time.time()
-        loss_sum, n_fallback = 0.0, 0
+        loss_sum, n_fallback, n_label = 0.0, 0, 0
         for _ in range(a.grad_accum):
             batch = next_batch()
             n_fallback += int(batch["n_fallback"])
+            n_label += int((batch["labels"][:, 1:] != -100).sum())
             if not first_batch_checked:
                 lab = batch["labels"][0]
                 tgt = processor.tokenizer.decode(lab[lab != -100])
@@ -262,11 +267,11 @@ def main(argv=None):
         opt.zero_grad(set_to_none=True)
 
         rec = {"step": step, "epoch": epoch, "loss": loss_sum, "grad_norm": gnorm, **comp, "lr": lr_now,
-               "loss_scale": scale_before, "skipped": bool(skipped), "n_fallback": n_fallback,
+               "loss_scale": scale_before, "skipped": bool(skipped), "n_fallback": n_fallback, "n_label_tokens": n_label,
                "step_time": round(time.time() - t0, 3)}
         train_log.log(rec)
-        if step % 10 == 0 or step == 1:
-            print(f"step {step:4d} loss {loss_sum:.4f} gnorm {gnorm:.3f} lr {lr_now:.2e} "
+        if step % 10 == 0 or step <= 10:
+            print(f"step {step:4d} loss {loss_sum:.4f} gnorm {gnorm:.3f} lr {lr_now:.2e} tok {n_label:3d} "
                   f"{rec['step_time']:.2f}s/step{' SKIPPED' if skipped else ''}")
 
         ev = {}
