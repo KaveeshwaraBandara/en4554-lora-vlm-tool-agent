@@ -2,60 +2,62 @@
 
 EN4554 Deep Learning for Vision – Assignment 1.
 
-- **Part 1:** does a LoRA-variant claim from NLP transfer to a ≤500M vision-language model? We test **PiSSA** (Meng et al., NeurIPS 2024) on **SmolVLM-256M-Instruct**.
-- **Part 2:** LoRA-finetune **Qwen2.5-0.5B-Instruct** for tool calling inside a minimal agent loop, and measure what changes.
+- **Part 1 (`part1_vlm_lora/`):** does PiSSA's claim, faster convergence than LoRA (Meng et al., NeurIPS 2024), transfer to a ≤500M vision-language model? Tested on **SmolVLM-256M-Instruct** with **TextVQA**. Report: [`part1_vlm_lora/report/report.pdf`](part1_vlm_lora/report/report.pdf).
+- **Part 2 (`part2_tool_agent/`):** LoRA-finetuning a small LLM for tool calling (added by a teammate).
 
-Everything runs on a free Colab T4 (fp16, fixed seeds).
+Everything runs on a free Colab T4 (fp16 autocast, fixed seeds).
+
+## Part 1 at a glance
+
+2,000 train / 500 eval questions from the TextVQA **validation** split (disjoint by image), images at 1024 px. LM adapters (all 7 projections × 30 layers), r = 16, α = r, 300 steps, batch 8. Mean of seeds 42 and 43. Accuracy is VQA accuracy on the 500 eval questions.
+
+| | acc @50 | acc @150 | acc @300 | held-out answer loss @300 |
+|---|---|---|---|---|
+| zero-shot | 49.6 | | | 8.06 |
+| LoRA, lr 2e-5 (paper lr) | 48.2 | 51.1 | 51.3 | 0.948 |
+| **PiSSA, lr 2e-5 (paper lr)** | **51.9** | **53.2** | **54.6** | **0.717** |
+| LoRA, lr 2e-4 | 51.8 | 54.1 | 55.7 | 0.687 |
+| PiSSA, lr 2e-4 | 52.2 | 51.9 | 56.1 | 0.688 |
+
+At the paper's learning rate PiSSA converges much faster and ends 3.3 points higher. With a 10× larger learning rate, LoRA reaches the same held-out loss and accuracy, so in this setting the advantage behaves like a larger effective step size. See the report for figures, paired statistics and the vision-specific analysis.
 
 ## Repository layout
 
 ```
-common/                   shared helpers: seeding, output dirs (Drive on Colab), JSONL logging
+common/                      seeding, output dirs (Google Drive on Colab), JSONL logging
 part1_vlm_lora/
-  src/                    model utils, adapter placement, training/eval, spectral analysis
-  tests/                  offline CPU tests on a tiny random SmolVLM (no downloads)
-  configs/                run configs
-  notebooks/              Colab entry points (00_setup reproduces the environment)
-  results/                CSVs + figures used in the report
-  report/                 LaTeX report (≤ 3 pages)
-part2_tool_agent/
-  data/                   generated train/test JSONL
-  writeup/                ≤ 1 page write-up
+  src/                       data, metrics, adapters (LoRA / PiSSA / minor / medium / full),
+                             training, spectral analysis, report figures
+  tests/                     offline CPU tests on a tiny random SmolVLM (no downloads)
+  notebooks/                 00 setup · 01 dataset headroom · 02 training · 03 analysis (CPU)
+  run_grid.sh                run groups: reproduce · main · bonus · reference
+  results/                   logs, summary tables and figures behind the report
+  report/                    LaTeX source + report.pdf (≤ 3 pages)
+part2_tool_agent/            Part 2 (teammate)
 ```
 
-## Quickstart on Colab
+## Reproduce the main result (Colab, ~45 min on a T4)
 
-1. Open `part1_vlm_lora/notebooks/00_setup.ipynb` in Colab and choose **Runtime → Change runtime type → T4 GPU**.
-2. Run all cells. The notebook clones this repo, installs `requirements.txt`, mounts Google Drive and runs the model inspection.
+1. Open `part1_vlm_lora/notebooks/02_train.ipynb` from GitHub in Colab and select **Runtime → T4 GPU**.
+2. Run the setup cell. It clones the repo, installs `requirements.txt` and mounts Google Drive for logs.
+3. Replace the grid cell's command with `!bash part1_vlm_lora/run_grid.sh reproduce`. This runs zero-shot, then LoRA vs PiSSA at lr 2e-5, seed 42.
+4. Run the "Quick look" cells for the table and curves.
 
-Checkpoints and logs go to `MyDrive/en4554-a1/` so a disconnect does not lose work.
+The full grid (`main`: 2 learning rates × 2 seeds) takes ~2.7 h, more than one free-tier daily allowance, and restarts cleanly: finished runs are skipped. `python -m part1_vlm_lora.src.report_figures` rebuilds the report figures and statistics from the logs in `part1_vlm_lora/results/runs/`.
 
 ## Running locally
 
 ```bash
 # install torch >= 2.6 for your CUDA version first
 pip install -r requirements.txt
-python -m pytest -q part1_vlm_lora/tests          # offline sanity checks (CPU)
-python -m part1_vlm_lora.src.inspect_model         # parameter breakdown + adapter targets
+python -m pytest -q part1_vlm_lora/tests                  # offline checks (CPU)
+bash part1_vlm_lora/run_grid.sh reproduce                 # outputs -> ./outputs (or $EN4554_OUT)
 ```
 
-Outputs go to `./outputs/` (set `EN4554_OUT` to change this). Runs use **fp16 even on GPUs that support bf16**, so results match the T4 setup.
+Runs use **fp16 even on GPUs that support bf16**, so results match the T4.
 
 ## Reproducibility
 
-- Seeds: 42 (primary) and 43 (second seed). Every run logs its seed, config and package versions.
-- Precision: fp32 master weights with fp16 autocast (`fp16=True`). bf16 is rejected by `common.assert_fp16_only`.
-- Package versions are pinned in `requirements.txt`.
-
-## Status
-
-| Step | Status |
-|---|---|
-| Phase 0: scaffold, utils, adapter targeting tests, T4 smoke test | ✅ |
-| Part 1: dataset headroom check → TextVQA @ 1024 px | ✅ |
-| Part 1: LoRA vs PiSSA training + eval | 🔧 ready (`02_train.ipynb`, `run_grid.sh`) |
-| Part 1: vision-specific analysis (placement × spectrum) | ⏳ |
-| Part 1: report | ⏳ |
-| Part 2: tools, agent loop, data | ⏳ |
-| Part 2: baseline vs LoRA eval + failure analysis | ⏳ |
-| Part 2: write-up | ⏳ |
+- Seeds 42 and 43. The train/eval split is fixed by `--data-seed 42`, and LoRA and PiSSA with the same seed see identical batches.
+- fp32 master weights with fp16 autocast and dynamic loss scaling (initial scale 2^12, no skipped steps).
+- Package versions are pinned in `requirements.txt`. Every run logs its config, seed and versions.

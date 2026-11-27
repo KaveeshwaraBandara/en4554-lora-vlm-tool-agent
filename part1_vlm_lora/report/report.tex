@@ -1,0 +1,106 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[a4paper,margin=1.9cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[font=small,labelfont=bf,skip=3pt]{caption}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titleformat*{\section}{\large\bfseries}
+\setlength{\parskip}{2pt}
+\setlist{nosep,leftmargin=*}
+\graphicspath{{../results/figures/}}
+
+% every number below comes from ../results/tables/macros.tex (generated from the run logs)
+\input{../results/tables/macros.tex}
+\newcommand{\R}[1]{\ifcsname r@#1\endcsname\csname r@#1\endcsname\else\textbf{??}\fi}
+
+\title{\vspace{-1.4cm}\Large\textbf{Does PiSSA's faster convergence transfer to a small vision--language model?}}
+\author{Imanchana Kaveeshwara Bandara (220059J) \\ \small EN4554 Deep Learning for Vision, Assignment 1, Part 1 \\
+\small Code: \url{https://github.com/KaveeshwaraBandara/en4554-lora-vlm-tool-agent}}
+\date{\vspace{-0.9cm}}
+
+\begin{document}
+\maketitle
+
+\section{Central claim of the paper}
+PiSSA~\cite{pissa} keeps LoRA's form $W = W^{\text{res}} + BA$~\cite{lora} but initialises $A=\sqrt{S_{[:r]}}\,V^\top_{[:r]}$ and $B=U_{[:r]}\sqrt{S_{[:r]}}$ from the top-$r$ singular triplets of the pretrained weight, freezing the residual $W^{\text{res}}$. Because the adapter starts in the principal subspace, PiSSA claims to \emph{converge faster and reach better performance than LoRA with the same number of trainable parameters} (e.g.\ Mistral-7B on GSM8K: 72.86\% vs.\ 67.7\%).
+
+\section{Concept chosen and the evidence for it}
+We test the \textbf{faster-convergence} claim. In the paper's Sec.~5.2 / Fig.~4 (LLaMA~2-7B on MetaMathQA-395K), PiSSA's training loss falls faster in the first $\sim$100 steps and stays below LoRA's, its gradient norm is much larger than LoRA's and follows the trend of full fine-tuning, and GSM8K accuracy is higher throughout. The paper attributes LoRA's slow start to its initialisation ($A$ Gaussian, $B=0$), which makes early gradients small. Its App.~A ablation (principal $>$ medium $>$ minor singular components) supports the subspace explanation.
+
+\section{Translated hypotheses}
+\begin{itemize}
+\item[\textbf{H1}] When SmolVLM-256M is fine-tuned on a text-reading VQA task with equal-rank adapters and the paper's hyper-parameters, PiSSA lowers the held-out answer loss in fewer steps than LoRA, with larger gradient norms, and gives higher accuracy at fixed step budgets.
+\item[\textbf{H1$'$}] (control) The advantage remains when LoRA uses its usual $10\times$ larger learning rate, i.e.\ it is not merely a larger effective step size.
+\item[\textbf{H2}] (vision-specific) PiSSA's head start depends on how much of each weight matrix its top-$r$ directions hold. If the SigLIP vision encoder has flatter spectra than the language model, PiSSA's edge should shrink when the vision tower is adapted.
+\end{itemize}
+
+\section{Experimental setup}
+\textbf{Model.} SmolVLM-256M-Instruct~\cite{smolvlm}: SigLIP-B/16-512 vision encoder~\cite{siglip}, pixel-shuffle connector, SmolLM2-135M; 256M parameters ($\le$500M).
+\textbf{Data.} TextVQA~\cite{textvqa} \emph{validation} split, streamed with a fixed seed: 2{,}000 training and 500 evaluation questions, disjoint by image. We use the validation split because SmolVLM's training mix (The Cauldron) contains the TextVQA train split, so these questions are unseen. TextVQA was chosen by a zero-shot headroom check on 200 questions per dataset (TextVQA 51.0, DocVQA 48.4 ANLS, OK-VQA 35.1, VQAv2 70.9). OK-VQA has more headroom, but its gap is world knowledge a 135M language model cannot learn from 2k examples, and it barely depends on the vision tower, which H2 needs. Images are resized to a 1024-px longest edge (4 tiles + global view, 320 image tokens): the same zero-shot accuracy as the default 2048~px (51.0 vs.\ 51.1) at $2.7\times$ shorter sequences.
+\textbf{Adapters.} All 7 projections of the 30 language-model layers (210 matrices), $r=16$, $\alpha=r$, dropout 0 as in the paper; 4.88M trainable parameters (1.9\%). PiSSA uses PEFT's \texttt{init\_lora\_weights="pissa"}; our own SVD initialisation (used for the minor-component ablation) reproduces it exactly (unit test).
+\textbf{Training.} AdamW without weight decay, cosine schedule with 3\% warm-up, batch 8, 300 steps ($\approx$1.2 epochs), gradient clipping 1.0, loss on the answer tokens only (majority answer as target). Learning rates $2\!\times\!10^{-5}$ (the paper's) and $2\!\times\!10^{-4}$ (typical for LoRA). fp32 master weights with fp16 autocast (the T4 has no bf16; initial loss scale $2^{12}$, no skipped steps). Seeds 42 and 43; with the same seed both methods see identical batches.
+\textbf{Metrics tied to the claim.} Held-out answer NLL on 256 eval questions at steps 0, 5, 10, 25, 50, 100, \dots, 300 and the number of steps to reach NLL $\le 1$; training loss; pre-clip gradient norm; VQA accuracy~\cite{vqa} (10 annotators) on the 500 eval questions after 50, 150 and 300 steps, with paired bootstrap 95\% CIs over questions (seeds averaged).
+\textbf{Deviations from the paper:} batch 8 (not 128), fp16 autocast (not fp32), 300 steps.
+
+\section{Results and interpretation}
+\begin{table}[h]
+\centering\small
+\caption{Language-model adapters on TextVQA (mean of 2 seeds, $\pm$ half the seed range). Accuracy in \%, held-out loss = answer NLL after 300 steps, steps to loss $\le$1 per seed, train loss = mean of the last 50 steps.}
+\label{tab:main}
+\input{../results/tables/main_table.tex}
+\end{table}
+\vspace{-6pt}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{fig_convergence.pdf}
+\caption{Convergence metrics tied to the claim (mean of seeds; band = seed range in (a); dotted line = loss 1). Blue = LoRA, red = PiSSA; solid = lr $2\!\times\!10^{-5}$, dashed = $2\!\times\!10^{-4}$.}
+\label{fig:conv}
+\end{figure}
+
+\textbf{An answer-format phase.} At step 0 the held-out NLL is \R{zs-loss} although zero-shot accuracy is \R{zs-acc}\%: SmolVLM answers in sentence case with a full stop (``Chamberlain.''), whereas TextVQA references are lowercase. The first training steps mostly teach this format, so the steps needed to reach NLL $\le$1 measure how quickly the model adapts. Accuracy, whose normalisation ignores case and punctuation, measures the content.
+
+\textbf{H1 is supported at the paper's learning rate.} At $2\!\times\!10^{-5}$, PiSSA reaches NLL $\le$1 at step \R{pissa-lm-2e-5-s2t} vs.\ \R{lora-lm-2e-5-s2t} for LoRA (Fig.~\ref{fig:conv}a). Its median gradient norm over steps 10--100 is \R{pissa-lm-2e-5-gnorm} vs.\ \R{lora-lm-2e-5-gnorm} (Fig.~\ref{fig:conv}c), the pattern of the paper's Fig.~4. It is ahead at every budget, by \R{pl-low-300-diff} points [\R{pl-low-300-lo}, \R{pl-low-300-hi}] after 300 steps (Table~\ref{tab:paired}). Both seeds agree.
+
+\textbf{H1$'$ is not supported.} At $2\!\times\!10^{-4}$, LoRA converges as quickly (Table~\ref{tab:main}) and reaches the same held-out loss (\R{lora-lm-2e-4-loss} vs.\ \R{pissa-lm-2e-4-loss}) and accuracy (difference \R{pl-high-300-diff} [\R{pl-high-300-lo}, \R{pl-high-300-hi}]). PiSSA's \emph{training} loss is still lower (\R{pissa-lm-2e-4-train} vs.\ \R{lora-lm-2e-4-train}), so it fits the training set faster without generalising better, and its accuracy dips at step 150 in both seeds (\R{pissa-lm-2e-4-acc150} vs.\ \R{lora-lm-2e-4-acc150}), a sign of instability at the higher learning rate. PiSSA at the paper's learning rate lands close to LoRA at a $10\times$ larger one (\R{pl-cross-300-diff} [\R{pl-cross-300-lo}, \R{pl-cross-300-hi}] after 300 steps).
+
+\textbf{Why: the spectrum sets the effective step.} Under Adam each step changes $W$ by $\approx \Delta B\,A + B\,\Delta A$. LoRA starts with $B=0$ and $\|A\|_F=\sqrt{r/3}$ (PEFT's Kaiming init), whereas PiSSA starts with $\|A\|_F=\|B\|_F=(\sum_{i\le r}\sigma_i)^{1/2}$. Measured on SmolLM2's 210 matrices, this update-scale ratio averages \R{spec-lm-scale}$\times$ (Fig.~\ref{fig:vision}b), the same order as the $10\times$ learning-rate gap that equalises the two methods. In our setting, PiSSA's faster convergence therefore behaves as a learning-rate amplifier set by the singular values.
+
+\begin{table}[h]
+\centering\small
+\caption{Paired accuracy differences (points) on the same 500 questions, seeds averaged; bootstrap 95\% CI; $^{*}$ CI excludes 0.}
+\label{tab:paired}
+\input{../results/tables/paired.tex}
+\end{table}
+\vspace{-6pt}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{fig_vision.pdf}
+\caption{Vision-specific analysis. (a) Share of each weight matrix's energy held by its top-16 singular directions, by relative depth. (b) PiSSA/LoRA update-scale proxy. (c) Held-out loss when the adapters are placed in the vision tower (solid) vs.\ the language model (dotted), lr $2\!\times\!10^{-5}$, seed 42.}
+\label{fig:vision}
+\end{figure}
+
+\textbf{H2: vision tower vs.\ language model.} The top-16 directions hold \R{spec-vision-energy}\% of a SigLIP matrix's energy on average vs.\ \R{spec-lm-energy}\% for SmolLM2 (Fig.~\ref{fig:vision}a), and the update-scale proxy is \R{spec-vision-scale}$\times$ vs.\ \R{spec-lm-scale}$\times$. With adapters in the vision tower, PiSSA's accuracy difference to LoRA after 300 steps is \R{pl-vision-300-diff} [\R{pl-vision-300-lo}, \R{pl-vision-300-hi}] points (Fig.~\ref{fig:vision}c).
+
+\textbf{Conclusion.} On a VLM, PiSSA's faster convergence transfers at the paper's hyper-parameters, but the better-final-performance part does not once LoRA's learning rate is tuned. Here the head start is explained by a larger effective step size that the weight spectrum determines. \emph{Limitations:} two seeds, 300 steps, one model and task, batch 8.
+
+\vspace{-4pt}
+{\footnotesize
+\begin{thebibliography}{9}\setlength{\itemsep}{0pt}
+\bibitem{pissa} F.~Meng, Z.~Wang, M.~Zhang. PiSSA: Principal singular values and singular vectors adaptation of large language models. \emph{NeurIPS}, 2024.
+\bibitem{lora} E.~J.~Hu et al. LoRA: Low-rank adaptation of large language models. \emph{ICLR}, 2022.
+\bibitem{smolvlm} A.~Marafioti et al. SmolVLM: Redefining small and efficient multimodal models. arXiv:2504.05299, 2025.
+\bibitem{siglip} X.~Zhai, B.~Mustafa, A.~Kolesnikov, L.~Beyer. Sigmoid loss for language image pre-training. \emph{ICCV}, 2023.
+\bibitem{textvqa} A.~Singh et al. Towards VQA models that can read. \emph{CVPR}, 2019.
+\bibitem{vqa} S.~Antol et al. VQA: Visual question answering. \emph{ICCV}, 2015.
+\end{thebibliography}}
+\end{document}
