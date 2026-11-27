@@ -1,0 +1,9 @@
+dataset,metric,longest_edge,n,zero_shot,mean_input_tokens,mean_image_tokens,ms_per_example,empty_pred_rate
+textvqa,vqa_acc,2048,200,51.1,954.7,894.7,401.9,0.0
+textvqa,vqa_acc,1024,200,51.0,358.6,318.1,188.5,0.0
+docvqa,anls,2048,200,50.06,1092.0,1025.3,495.6,0.0
+docvqa,anls,1024,200,48.39,361.4,318.7,209.8,0.0
+okvqa,vqa_acc,2048,200,34.5,930.2,870.4,386.6,0.0
+okvqa,vqa_acc,1024,200,35.1,361.5,320,166.6,0.0
+vqav2,vqa_acc,2048,200,71.65,912.6,855.0,363.3,0.0
+vqav2,vqa_acc,1024,200,70.9,359.5,320,152.0,0.0

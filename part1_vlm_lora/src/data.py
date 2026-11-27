@@ -111,3 +111,33 @@ def load_subset(name: str, n: int, seed: int = 42, buffer_size: int = 500, use_c
     if use_cache:
         ds.save_to_disk(str(cache_dir))
     return ds
+
+
+def majority_answer(answers: list[str]) -> str:
+    """Training target: the most frequent annotator answer (ties -> first seen)."""
+    from collections import Counter
+
+    cleaned = [a.strip() for a in answers if a and a.strip()]
+    return Counter(cleaned).most_common(1)[0][0] if cleaned else ""
+
+
+def make_splits(name: str, n_train: int, n_eval: int, seed: int = 42, margin: int = 300):
+    """Disjoint train / eval sets drawn from the validation pool, split by image so that no
+    image (and none of its questions) appears on both sides."""
+    import random
+
+    pool = load_subset(name, n_train + n_eval + margin, seed=seed)
+    groups = sorted(set(pool["group"]))
+    random.Random(seed).shuffle(groups)
+    by_group: dict[str, list[int]] = {}
+    for i, g in enumerate(pool["group"]):
+        by_group.setdefault(g, []).append(i)
+    eval_idx, train_idx = [], []
+    for g in groups:
+        (eval_idx if len(eval_idx) < n_eval else train_idx).extend(by_group[g])
+    if len(train_idx) < n_train:
+        raise ValueError(f"pool too small: {len(train_idx)} train examples < {n_train}; raise margin")
+    train = pool.select(sorted(train_idx)[:n_train])
+    evl = pool.select(sorted(eval_idx)[:n_eval])
+    assert not set(train["group"]) & set(evl["group"])
+    return train, evl
