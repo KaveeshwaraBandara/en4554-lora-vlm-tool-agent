@@ -134,6 +134,10 @@ def parse_args(argv=None):
     ap.add_argument("--max-grad-norm", type=float, default=1.0)
     ap.add_argument("--eval-loss-every", type=int, default=50)
     ap.add_argument("--eval-loss-n", type=int, default=256)
+    ap.add_argument("--eval-loss-extra", type=int, nargs="*", default=[5, 10, 25],
+                    help="extra held-out loss points to resolve the early (answer-format) phase")
+    ap.add_argument("--init-loss-scale", type=float, default=2.0 ** 12,
+                    help="fp16 loss scale at step 1; 2^12 avoids the overflow-skipped first steps seen at 2^14")
     ap.add_argument("--gen-eval-steps", type=int, nargs="*", default=[50, 150, 300])
     ap.add_argument("--gen-batch", type=int, default=8)
     ap.add_argument("--num-workers", type=int, default=2)
@@ -145,7 +149,7 @@ def parse_args(argv=None):
     a = ap.parse_args(argv)
     if a.quick:
         a.n_train, a.n_eval, a.max_steps = 64, 32, 10
-        a.eval_loss_every, a.eval_loss_n, a.gen_eval_steps = 5, 32, [10]
+        a.eval_loss_every, a.eval_loss_n, a.gen_eval_steps, a.eval_loss_extra = 5, 32, [10], []
     return a
 
 
@@ -211,7 +215,7 @@ def main(argv=None):
         return 0.5 * (1 + math.cos(math.pi * min(1.0, prog)))
 
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
-    scaler = torch.amp.GradScaler("cuda", init_scale=2.0 ** 14, enabled=device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", init_scale=a.init_loss_scale, enabled=device.type == "cuda")
 
     g = torch.Generator().manual_seed(a.seed)
     loader = DataLoader(train_ds, batch_size=a.micro_batch, sampler=RandomSampler(train_ds, generator=g),
@@ -275,7 +279,7 @@ def main(argv=None):
                   f"{rec['step_time']:.2f}s/step{' SKIPPED' if skipped else ''}")
 
         ev = {}
-        if step % a.eval_loss_every == 0 or step == a.max_steps:
+        if step % a.eval_loss_every == 0 or step == a.max_steps or step in a.eval_loss_extra:
             ev["eval_loss"] = eval_loss(model, collator, eval_loss_ds, a.micro_batch, device)
         if step in gen_steps:
             ev["accuracy"] = gen_eval(model, processor, eval_ds, metric, a.gen_batch,

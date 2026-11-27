@@ -39,6 +39,13 @@ Deviations: batch 8 instead of 128, and fp16 autocast instead of fp32 (T4).
 | `reference` | full-rank update of the same LM matrices (lr 2e-5); minor and medium SVD init (PiSSA App. A ablation) |
 | `vision LR` | {LoRA, PiSSA} × placement {vision, connector, all} |
 
+## Observation: answer-format phase (diagnostic, step 3)
+
+At step 0 the answer loss is ~9.8 for every method and precision (fp32/fp16, eval/train, base/LoRA/PiSSA are identical).
+SmolVLM's natural answers are capitalised with a full stop ("Chamberlain."), while TextVQA ground truth is lowercase without one. Under teacher forcing every example is expensive (5.9–14.8 nats/token), even though zero-shot accuracy, which normalises case and punctuation, is 51%.
+The loss drops to ~1 within ~5 steps as the model adopts the target format. Convergence is therefore analysed in two phases: **format** (steps ≲ 10) and **content** (after).
+The fp16 loss scale starts at 2^12, so no early steps are lost to overflow skips.
+
 ## Metrics tied to the claim
 
 - Training loss vs step, and steps needed to reach a fixed loss threshold.
