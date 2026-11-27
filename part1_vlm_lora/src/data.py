@@ -8,6 +8,9 @@ image appears on both sides.
 
 Examples are streamed (no multi-GB download), shuffled with a fixed seed, and the
 selected subset is cached with save_to_disk (on Drive under Colab) for later runs.
+Images stay as compressed bytes while streaming and caching (decoded PIL images are
+~10x larger and exhausted Colab's 12 GB RAM at 2.8k examples); they are decoded when a
+row is accessed.
 """
 
 from __future__ import annotations
@@ -66,8 +69,9 @@ def get_answers(ex: dict) -> list[str]:
 
 def normalize_example(ex: dict, idx: int) -> dict:
     img = ex["image"]
-    if img.mode != "RGB":
+    if hasattr(img, "mode") and img.mode != "RGB":  # decoded PIL image
         img = img.convert("RGB")
+    # otherwise {"bytes", "path"} from Image(decode=False): decoded when the row is accessed
     return {
         "id": str(_first(ex, _ID_KEYS, idx)),
         "group": str(_first(ex, _GROUP_KEYS, f"row{idx}")),
@@ -77,11 +81,12 @@ def normalize_example(ex: dict, idx: int) -> dict:
     }
 
 
-def stream_examples(name: str, seed: int = 42, buffer_size: int = 500) -> Iterator[dict]:
-    from datasets import load_dataset
+def stream_examples(name: str, seed: int = 42, buffer_size: int = 500, decode: bool = False) -> Iterator[dict]:
+    from datasets import Image, load_dataset
 
     spec = DATASETS[name]
     ds = load_dataset(spec.hf_id, spec.config, split=spec.split, streaming=True)
+    ds = ds.cast_column("image", Image(decode=decode))  # keep compressed bytes in RAM
     ds = ds.shuffle(seed=seed, buffer_size=buffer_size)
     for i, ex in enumerate(ds):
         ex = normalize_example(ex, i)

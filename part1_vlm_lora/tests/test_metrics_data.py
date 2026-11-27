@@ -52,3 +52,30 @@ def test_normalize_example_ids_and_rgb():
 def test_clean_answer():
     assert clean_answer(" 4512.") == "4512"
     assert clean_answer("Paris\nbecause...") == "Paris"
+
+
+def test_subset_keeps_compressed_bytes_and_decodes_on_access(tmp_path, monkeypatch):
+    """Regression: 2.8k decoded images OOM-killed Colab; rows must stay encoded until accessed."""
+    import io
+
+    import part1_vlm_lora.src.data as D
+    from part1_vlm_lora.src.vqa import as_rgb
+
+    monkeypatch.setenv("EN4554_OUT", str(tmp_path))
+
+    def jpeg(mode):
+        buf = io.BytesIO()
+        Image.new(mode, (40, 30), 128).save(buf, format="JPEG")
+        return {"bytes": buf.getvalue(), "path": None}
+
+    raw = [{"image": jpeg("L" if i % 2 else "RGB"), "question": f"q{i}?", "answers": ["a"] * 10,
+            "question_id": i, "image_id": f"img{i}"} for i in range(6)]
+    monkeypatch.setattr(D, "stream_examples",
+                        lambda name, seed=42, buffer_size=500: (D.normalize_example(e, i) for i, e in enumerate(raw)))
+    norm = D.normalize_example(raw[1], 1)
+    assert isinstance(norm["image"], dict)            # not decoded while streaming
+    ds = D.load_subset("textvqa", 5, seed=3)
+    img = ds[1]["image"]                              # decoded on access
+    assert img.size == (40, 30) and img.mode == "L"
+    assert as_rgb(img).mode == "RGB"
+    assert D.majority_answer(["x", "y", "y"]) == "y"

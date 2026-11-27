@@ -27,7 +27,7 @@ from .adapters import METHODS, apply_method, grad_norms_by_group
 from .data import DATASETS, majority_answer, make_splits
 from .metrics import score
 from .model_utils import DEFAULT_MODEL_ID, load_smolvlm
-from .vqa import build_messages, generate_answers, set_resolution
+from .vqa import as_rgb, build_messages, generate_answers, set_resolution
 
 
 # ----------------------------------------------------------------------------- data
@@ -57,7 +57,7 @@ class VQACollator:
             prompts.append(prompt)
             fulls.append(full)
             suffix_ids.append(tok(full[len(prompt):], add_special_tokens=False)["input_ids"])
-            images.append([ex["image"]])
+            images.append([as_rgb(ex["image"])])
 
         enc = self.p(text=fulls, images=images, return_tensors="pt", padding=True)
         ids = enc["input_ids"]

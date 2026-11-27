@@ -29,6 +29,10 @@ def set_resolution(processor, longest_edge: int | None) -> None:
         processor.image_processor.size = {"longest_edge": int(longest_edge)}
 
 
+def as_rgb(img):
+    return img if img.mode == "RGB" else img.convert("RGB")
+
+
 def clean_answer(text: str) -> str:
     text = text.strip().split("\n")[0].strip()
     return text.rstrip(".").strip()
@@ -46,7 +50,7 @@ def generate_answers(model, processor, examples, batch_size: int = 4, max_new_to
         batch = [examples[i] for i in range(start, min(start + batch_size, len(examples)))]
         prompts = [processor.apply_chat_template(build_messages(e["question"]), add_generation_prompt=True)
                    for e in batch]
-        images = [[e["image"]] for e in batch]
+        images = [[as_rgb(e["image"])] for e in batch]
         inputs = processor(text=prompts, images=images, return_tensors="pt", padding=True).to(model.device)
 
         if use_amp:
